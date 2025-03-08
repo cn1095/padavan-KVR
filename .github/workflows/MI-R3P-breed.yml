@@ -55,7 +55,7 @@ jobs:
         sed -i 's/CONFIG_FIRMWARE_INCLUDE_OPENSSL_EXE=n/CONFIG_FIRMWARE_INCLUDE_OPENSSL_EXE=y/g' .config
         ################################################################################################
         ###  清除默认配置###
-        sed -i '/CONFIG_TOOLCHAIN_DIR/d' .config
+        #sed -i '/CONFIG_TOOLCHAIN_DIR/d' .config
         sed -i '/CONFIG_FIRMWARE_ENABLE_IPV6/d' .config
         sed -i '/CONFIG_FIRMWARE_ENABLE_USB/d' .config
         sed -i '/CONFIG_FIRMWARE_ENABLE_UFSD/d' .config
