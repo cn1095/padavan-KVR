@@ -30,6 +30,7 @@ configure:
 		--without-openssl \
 		--disable-shared \
 		--enable-static \
+		--enable-static-bin \
 		--host=$(HOST_TARGET) \
 		--build=$(HOST_BUILD) ; \
 	)
