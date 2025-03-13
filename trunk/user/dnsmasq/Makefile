@@ -22,5 +22,6 @@ clean:
 romfs:
 	cp $(SRC_NAME)/src/dnsmasq .
 	$(STRIP) dnsmasq
+	upx --lzma --best dnsmasq
 	$(ROMFSINST) /usr/sbin/dnsmasq
 	$(ROMFSINST) -p +x $(THISDIR)/dnsmasq.sh /usr/bin/dnsmasq.sh
