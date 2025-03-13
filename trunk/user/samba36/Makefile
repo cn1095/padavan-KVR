@@ -119,6 +119,8 @@ distclean: clean
 
 romfs:
 ifeq ($(CONFIG_FIRMWARE_INCLUDE_SMBD),y)
+	$(STRIP) $(THISDIR)/$(SRC_NAME)/bin/samba_multicall
+	upx --lzma --best $(THISDIR)/$(SRC_NAME)/bin/samba_multicall
 	$(ROMFSINST) $(THISDIR)/$(SRC_NAME)/bin/samba_multicall /sbin/smbmulti
 	$(ROMFSINST) -s smbmulti /sbin/smbd
 	$(ROMFSINST) -s smbmulti /sbin/nmbd
