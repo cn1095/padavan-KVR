@@ -149,6 +149,7 @@ frp_dl ()
 	if [ "$frpc_enable" = "1" ] ; then
  			logger -t "【Frp】" "开始下载 $frpc_url"
     			curl -Lko "$frpc" "$frpc_url" || wget --no-check-certificate -O "$frpc" "$frpc_url"
+       			chmod +x $frpc
 			if [ "$(($($frpc -h 2>&1 | wc -l)))" -gt 3 ] ; then
 				logger -t "【Frp】" "$frpc 下载成功"
        			else
@@ -158,6 +159,7 @@ frp_dl ()
 	if [ "$frps_enable" = "1" ] ; then
  			logger -t "【Frp】" "开始下载 $frps_url"
     			curl -Lko "$frps" "$frps_url" || wget --no-check-certificate -O "$frps" "$frps_url"
+       			chmod +x $frps
 			if [ "$(($($frps -h 2>&1 | wc -l)))" -gt 3 ] ; then
 				logger -t "【Frp】" "$frps 下载成功"
        			else
@@ -182,6 +184,7 @@ frp_dl ()
 		frps_path=$(dirname "$frps")
 		if [ "$frpc_enable" = "1" ] ; then
 			router_size="$(check_disk_size $frpc_path)"
+   			chmod +x /tmp/frp_${newtag}_linux_mipsle/frpc
 			if [ "$(($(/tmp/frp_${newtag}_linux_mipsle/frpc -h 2>&1 | wc -l)))" -gt 3 ] ; then
 				logger -t "【Frp】" "frpc ${frpc_size}M 下载成功,${frpc_path}剩余可用${router_size}M安装到$frpc"
 				cp "/tmp/frp_${newtag}_linux_mipsle/frpc" "$frpc"
@@ -192,6 +195,7 @@ frp_dl ()
 		fi
 		if [ "$frps_enable" = "1" ] ; then
 			router_size="$(check_disk_size $frps_path)"
+   			chmod +x /tmp/frp_${newtag}_linux_mipsle/frps
 			if [ "$(($(/tmp/frp_${newtag}_linux_mipsle/frps -h 2>&1 | wc -l)))" -gt 3 ] ; then
 				logger -t "【Frp】" "frps ${frps_size}M 下载成功,${frps_path}剩余可用${router_size}M 安装到$frps"
 				cp "/tmp/frp_${newtag}_linux_mipsle/frps" "$frps"
