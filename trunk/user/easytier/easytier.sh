@@ -84,6 +84,23 @@ dowload_et() {
 	tag="$1"
 	bin_path=$(dirname "$et_core")
 	[ ! -d "$bin_path" ] && mkdir -p "$bin_path"
+ 	easytier_core_url=`nvram get easytier_core_url`
+  if [ ! -z "$easytier_core_url" ] ; then
+	logg "开始下载 $easytier_core_url"
+ 	curl -Lko "$et_core" "$easytier_core_url" || wget --no-check-certificate -O "$et_core" "$easytier_core_url"
+  	chmod +x $et_core
+		if [[ "$($et_core -h 2>&1 | wc -l)" -gt 3 ]] ; then
+			logg "$et_core 下载成功"
+			et_ver=$($et_core -V | awk '{print $2}' | tr -d ' ' | tr -d '\n')
+			if [ -z "$et_ver" ] ; then
+				nvram set easytier_ver=""
+			else
+				nvram set easytier_ver="v${et_ver}"
+			fi
+       		else
+	   		logg "下载失败 $easytier_core_url"
+	  	fi
+  else
 	logg "开始下载 https://github.com/lmq8267/EasyTier/releases/download/${tag}/easytier-mipsel-linux-muslsf.tar.gz"
 	for proxy in $github_proxys ; do
  	length=$(wget --no-check-certificate -T 5 -t 3 "${proxy}https://github.com/lmq8267/EasyTier/releases/download/${tag}/easytier-mipsel-linux-muslsf.tar.gz" -O /dev/null --spider --server-response 2>&1 | grep "[Cc]ontent-[Ll]ength" | grep -Eo '[0-9]+' | tail -n 1)
@@ -115,12 +132,24 @@ dowload_et() {
 		log "下载失败，请手动下载 ${proxy}https://github.com/lmq8267/EasyTier/releases/download/${tag}/easytier-mipsel-linux-muslsf.tar.gz 上传到  $et_core"
    	fi
 	done
+ fi
 }
 
 dowload_web() {
 	tag="$1"
 	webbin_path=$(dirname "$et_web_bin")
 	[ ! -d "$webbin_path" ] && mkdir -p "$webbin_path"
+ 	easytier_web_url=`nvram get easytier_web_url`
+  if [ ! -z "$easytier_web_url" ] ; then
+	logg "开始下载 $easytier_web_url"
+ 	curl -Lko "$et_web_bin" "$easytier_web_url" || wget --no-check-certificate -O "$et_web_bin" "$easytier_web_url"
+  	chmod +x $et_web_bin
+		if [[ "$($et_web_bin -h 2>&1 | wc -l)" -gt 3 ]] ; then
+			logg "$et_web_bin 下载成功"
+       		else
+	   		logg "下载失败 $easytier_cweb_url"
+	  	fi
+  else
 	logg "开始下载 https://github.com/lmq8267/EasyTier/releases/download/${tag}/easytier-mipsel-linux-muslsf.tar.gz"
 	for proxy in $github_proxys ; do
  	length=$(wget --no-check-certificate -T 5 -t 3 "${proxy}https://github.com/lmq8267/EasyTier/releases/download/${tag}/easytier-mipsel-linux-muslsf.tar.gz" -O /dev/null --spider --server-response 2>&1 | grep "[Cc]ontent-[Ll]ength" | grep -Eo '[0-9]+' | tail -n 1)
@@ -145,6 +174,7 @@ dowload_web() {
 		log "下载失败，请手动下载 ${proxy}https://github.com/lmq8267/EasyTier/releases/download/${tag}/easytier-mipsel-linux-muslsf.tar.gz 上传到  $et_web_bin"
    	fi
 	done
+ fi
 }
 
 update_et() {
