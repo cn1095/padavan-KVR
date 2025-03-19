@@ -76,6 +76,24 @@ dowload_vnts() {
 	tag="$1"
 	bin_path=$(dirname "$VNTS")
 	[ ! -d "$bin_path" ] && mkdir -p "$bin_path"
+ 	vnts_url=`nvram get vnts_url`
+  if [ ! -z "$vnts_url" ] ; then
+	logg "开始下载 $vnts_url"
+ 	curl -Lko "$VNTS" "$vnts_url" || wget --no-check-certificate -O "$VNTS" "$vnts_url"
+  	chmod +x $VNTS
+  		if [[ "$($VNTS -h 2>&1 | wc -l)" -gt 3 ]] ; then
+			logger -t "【VNT服务端】" "$VNTS 下载成功"
+			vnts_ver=$($VNTS --version | awk -F 'version:' '{print $2}' | tr -d ' ' | tr -d '\n')
+			if [ -z "$vnts_ver" ] ; then
+				nvram set vnts_ver=""
+			else
+				nvram set vnts_ver="v${vnts_ver}"
+			fi
+			break
+   		else
+     			logger -t "【VNT服务端】" "下载失败 $vnts_url"
+  		fi
+  else
 	logger -t "【VNT服务端】" "开始下载 https://github.com/lmq8267/vnts/releases/download/${tag}/vnts_mipsel-unknown-linux-musl 到 $VNTS"
 	for proxy in $github_proxys ; do
  	length=$(wget --no-check-certificate -T 5 -t 3 "${proxy}https://github.com/lmq8267/vnts/releases/download/${tag}/vnts_mipsel-unknown-linux-musl" -O /dev/null --spider --server-response 2>&1 | grep "[Cc]ontent-[Ll]ength" | grep -Eo '[0-9]+' | tail -n 1)
@@ -103,6 +121,7 @@ dowload_vnts() {
 		logger -t "【VNT服务端】" "下载失败，请手动下载 ${proxy}https://github.com/lmq8267/vnts/releases/download/${tag}/vnts_mipsel-unknown-linux-musl 上传到  $VNTS"
    	fi
 	done
+ fi
 }
 
 update_vnts() {
