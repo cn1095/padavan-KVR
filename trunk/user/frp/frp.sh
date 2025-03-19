@@ -135,7 +135,9 @@ get_tag() {
 }
 
 frp_dl () 
-{
+{	
+	frpc_url=`nvram get frpc_url`
+ 	frps_url=`nvram get frps_url`
 	tag="$1"
 	newtag="$(echo "$tag" | tr -d 'v' | tr -d ' ')"
 	mkdir -p /tmp/frp
@@ -143,6 +145,27 @@ frp_dl ()
 	[ ! -d "$frpc_path" ] && mkdir -p "$frpc_path"
  	frps_path=$(dirname "$frps")
 	[ ! -d "$frps_path" ] && mkdir -p "$frps_path"
+ if [ ! -z "$frpc_url" ] || [ ! -z "$frps_url" ] ; then
+	if [ "$frpc_enable" = "1" ] ; then
+ 			logger -t "【Frp】" "开始下载 $frpc_url"
+    			curl -Lko "$frpc" "$frpc_url" || wget --no-check-certificate -O "$frpc" "$frpc_url"
+			if [ "$(($($frpc -h 2>&1 | wc -l)))" -gt 3 ] ; then
+				logger -t "【Frp】" "$frpc 下载成功"
+       			else
+	   			logger -t "【Frp】" "下载 $frpc_url 失败"
+	  		fi
+	fi
+	if [ "$frps_enable" = "1" ] ; then
+ 			logger -t "【Frp】" "开始下载 $frps_url"
+    			curl -Lko "$frps" "$frps_url" || wget --no-check-certificate -O "$frps" "$frps_url"
+			if [ "$(($($frps -h 2>&1 | wc -l)))" -gt 3 ] ; then
+				logger -t "【Frp】" "$frps 下载成功"
+       			else
+	   			logger -t "【Frp】" "下载 $frps_url 失败"
+	  		fi
+	fi
+
+ else
 	logger -t "【Frp】" "开始下载 https://github.com/fatedier/frp/releases/download/${tag}/frp_${newtag}_linux_mipsle.tar.gz"
 	for proxy in $github_proxys ; do
  	length=$(wget --no-check-certificate -T 5 -t 3 "${proxy}https://github.com/fatedier/frp/releases/download/${tag}/frp_${newtag}_linux_mipsle.tar.gz" -O /dev/null --spider --server-response 2>&1 | grep "[Cc]ontent-[Ll]ength" | grep -Eo '[0-9]+' | tail -n 1)
@@ -184,7 +207,7 @@ frp_dl ()
 		logger -t "【Frp】" "下载失败，请手动下载 ${proxy}https://github.com/fatedier/frp/releases/download/${tag}/frp_${newtag}_linux_mipsle.tar.gz 解压上传"
    	fi
 	done
-      
+fi      
 }
 
 scriptfilepath=$(cd "$(dirname "$0")"; pwd)/$(basename $0)
