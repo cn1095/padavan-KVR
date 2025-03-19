@@ -95,6 +95,24 @@ dowload_vntcli() {
 	tag="$1"
 	bin_path=$(dirname "$VNTCLI")
 	[ ! -d "$bin_path" ] && mkdir -p "$bin_path"
+ 	vnt_url=`nvram get vnt_url`
+  if [ ! -z "$vnt_url" ] ; then
+	logg "开始下载 $vnt_url"
+	curl -Lko "$VNTCLI" "$vnt_url" || wget --no-check-certificate -O "$VNTCLI" "$vnt_url"
+ 	chmod +x $VNTCLI
+		if [[ "$($VNTCLI -h 2>&1 | wc -l)" -gt 3 ]] ; then
+			logger -t "【VNT客户端】" "$VNTCLI 下载成功"
+			vntcli_ver=$($VNTCLI -h | grep 'version:' | awk -F 'version:' '{print $2}' | tr -d ' ' | tr -d '\n')
+			if [ -z "$vntcli_ver" ] ; then
+				nvram set vntcli_ver=""
+			else
+				nvram set vntcli_ver="v${vntcli_ver}"
+			fi
+			break
+       		else
+	   		logger -t "【VNT客户端】" "下载失败 $vnt_url"
+	  	fi
+  else
 	logger -t "【VNT客户端】" "开始下载 https://github.com/lmq8267/vnt-cli/releases/download/${tag}/vnt-cli_mipsel-unknown-linux-musl 到 $VNTCLI"
 	for proxy in $github_proxys ; do
  	length=$(wget --no-check-certificate -T 5 -t 3 "${proxy}https://github.com/lmq8267/vnt-cli/releases/download/${tag}/vnt-cli_mipsel-unknown-linux-musl" -O /dev/null --spider --server-response 2>&1 | grep "[Cc]ontent-[Ll]ength" | grep -Eo '[0-9]+' | tail -n 1)
@@ -122,6 +140,7 @@ dowload_vntcli() {
 		logger -t "【VNT客户端】" "下载失败，请手动下载 ${proxy}https://github.com/lmq8267/vnt-cli/releases/download/${tag}/vnt-cli_mipsel-unknown-linux-musl 上传到  $VNTCLI"
    	fi
 	done
+ fi
 }
 
 update_vntcli() {
