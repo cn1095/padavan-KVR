@@ -11,7 +11,7 @@ env:
   TZ: Asia/Shanghai
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     steps:
     - name: Checkout
@@ -28,7 +28,7 @@ jobs:
     - name: Install UPX
       uses: crazy-max/ghaction-upx@v3
       with:
-        version: latest
+        version: v4.2.4
         install-only: true
     - name: Clone source code
       env:
