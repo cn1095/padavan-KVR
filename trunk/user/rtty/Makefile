@@ -1,4 +1,4 @@
-SRC_NAME = rtty
+SRC_NAME = rtty-8.2.0
 SRC_URL = https://github.com/zhaojh329/rtty/releases/download/v8.2.0/rtty-8.2.0.tar.gz
 CFLAGS   += -O2 -ffunction-sections -fdata-sections
 LDFLAGS  += -Wl,--gc-sections
