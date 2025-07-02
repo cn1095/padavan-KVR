@@ -29,9 +29,8 @@ configure:
 	( mkdir -p $(SRC_NAME)/build && cd $(SRC_NAME)/build ; \
 	cmake -DCMAKE_TOOLCHAIN_FILE=../../cross-mipsel-linux.cmake \
 		  -DCMAKE_BUILD_TYPE=Release \
-		  -DUSE_OPENSSL=ON  \
-		  -DOPENSSL_FOUND=TRUE \
-		  .. \
+		  -DUSE_OPENSSL=ON \
+		  -DOPENSSL_FOUND=TRUE .. \
 	)
 
 clean:
