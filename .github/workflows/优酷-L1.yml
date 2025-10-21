@@ -176,7 +176,7 @@ jobs:
         echo "CONFIG_FIRMWARE_ENABLE_EXT2=n" >> .config
         
         #启用 EXT3 文件系统支持。约 0.2MB
-        echo "CONFIG_FIRMWARE_ENABLE_EXT3=n" >> .config
+        echo "CONFIG_FIRMWARE_ENABLE_EXT3=y" >> .config
         
         #启用 EXT4（同时支持 EXT3/EXT2）文件系统支持。约 0.4MB
         echo "CONFIG_FIRMWARE_ENABLE_EXT4=y" >> .config
