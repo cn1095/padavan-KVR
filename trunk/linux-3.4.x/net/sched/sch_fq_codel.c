@@ -18,16 +18,20 @@
 #include <linux/errno.h>
 #include <linux/init.h>
 #include <linux/ip.h>
+#include <linux/ipv6.h>
 #include <linux/tcp.h>
 #include <linux/udp.h>
 #include <linux/skbuff.h>
 #include <linux/jhash.h>
+#include <linux/if_ether.h>
 #include <linux/slab.h>
 #include <linux/vmalloc.h>
 #include <net/netlink.h>
 #include <net/pkt_sched.h>
 #include <net/flow_keys.h>
 #include <net/codel.h>
+#include <net/ip.h>
+#include <net/ipv6.h>
 
 /*	Fair Queue CoDel.
  *
@@ -70,50 +74,69 @@ struct fq_codel_sched_data {
 	struct list_head old_flows;	/* list of old flows */
 };
 
-// ----------------------------
-// Linux 3.4 内核兼容版本 fq_codel_hash()
-// ----------------------------
+// ============================================
+// fq_codel_hash()：兼容 3.4 内核的 IPv4 + IPv6 实现
+// ============================================
 static unsigned int fq_codel_hash(const struct fq_codel_sched_data *q,
                                   const struct sk_buff *skb)
 {
-    const struct iphdr *iph;
-    u32 src = 0, dst = 0;
-    u32 ports = 0;
-    u16 srcp = 0, dstp = 0;
-    u8 proto = 0;
-    u32 hash;
+    unsigned int hash = 0; // 存储最终哈希结果
+    __be32 src = 0, dst = 0; // IPv4 源/目的地址
+    __be16 ports = 0;        // TCP/UDP 源目的端口 XOR
+    u8 proto = 0;            // IP 协议号
 
-    // 空指针保护
-    if (!skb)
-        return 0;
-
-    // 仅处理 IPv4 数据包
+    // 判断是否是 IPv4 报文
     if (skb->protocol == htons(ETH_P_IP)) {
-        iph = ip_hdr(skb);
-        if (iph) {
-            src = ntohl(iph->saddr);   // 源IP
-            dst = ntohl(iph->daddr);   // 目的IP
-            proto = iph->protocol;     // 协议号 (TCP/UDP)
+        const struct iphdr *iph = ip_hdr(skb); // 获取 IPv4 头
+        if (!iph)
+            return 0;
 
-            // 提取传输层端口号
-            if (proto == IPPROTO_TCP) {
-                const struct tcphdr *th = tcp_hdr(skb);
-                srcp = ntohs(th->source);
-                dstp = ntohs(th->dest);
-            } else if (proto == IPPROTO_UDP) {
-                const struct udphdr *uh = udp_hdr(skb);
-                srcp = ntohs(uh->source);
-                dstp = ntohs(uh->dest);
-            }
+        src = iph->saddr;
+        dst = iph->daddr;
+        proto = iph->protocol;
 
-            ports = ((u32)srcp << 16) | dstp;
+        // 仅对 TCP/UDP 提取端口进行进一步散列
+        if (proto == IPPROTO_TCP || proto == IPPROTO_UDP) {
+            const struct tcphdr *th = tcp_hdr(skb);
+            ports = th->source ^ th->dest;
+        }
+
+        // 计算哈希
+        hash = jhash_3words((__force u32)dst,
+                            (__force u32)(src ^ proto),
+                            (__force u32)ports,
+                            q->perturbation);
+    }
+
+    // 判断是否是 IPv6 报文
+    else if (skb->protocol == htons(ETH_P_IPV6)) {
+        const struct ipv6hdr *ip6h = ipv6_hdr(skb); // 获取 IPv6 头
+        if (!ip6h)
+            return 0;
+
+        proto = ip6h->nexthdr;
+
+        // 为了简化，这里仅使用 IPv6 地址的低 32 位做哈希
+        // （完整哈希可改为 jhash2((u32*)&ip6h->saddr, 8, seed)，但3.4内核未必有）
+        hash = jhash_3words(((__force u32 *)ip6h->daddr.s6_addr32)[3],
+                            ((__force u32 *)ip6h->saddr.s6_addr32)[3] ^ proto,
+                            0,
+                            q->perturbation);
+
+        // 仅当 TCP/UDP 时再叠加端口信息
+        if (proto == IPPROTO_TCP || proto == IPPROTO_UDP) {
+            const struct tcphdr *th = tcp_hdr(skb);
+            ports = th->source ^ th->dest;
+            hash ^= jhash_1word((__force u32)ports, q->perturbation);
         }
     }
 
-    // 使用 jhash_3words 生成哈希值
-    hash = jhash_3words(dst, src ^ proto, ports, q->perturbation);
+    // 非 IP 协议类型则返回 0
+    else {
+        return 0;
+    }
 
-    // 计算分桶索引
+    // 将 hash 均匀映射到 flow 数量上
     return ((u64)hash * q->flows_cnt) >> 32;
 }
 
