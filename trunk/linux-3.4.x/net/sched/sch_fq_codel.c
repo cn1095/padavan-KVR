@@ -73,7 +73,7 @@ static unsigned int fq_codel_hash(const struct fq_codel_sched_data *q,
 	struct flow_keys keys;
 	unsigned int hash;
 
-	skb_flow_dissect(skb, &keys);
+	skb_flow_dissect_flow_keys(skb, &keys);
 	hash = jhash_3words((__force u32)keys.dst,
 			    (__force u32)keys.src ^ keys.ip_proto,
 			    (__force u32)keys.ports, q->perturbation);
