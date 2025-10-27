@@ -17,6 +17,9 @@
 #include <linux/in.h>
 #include <linux/errno.h>
 #include <linux/init.h>
+#include <linux/ip.h>
+#include <linux/tcp.h>
+#include <linux/udp.h>
 #include <linux/skbuff.h>
 #include <linux/jhash.h>
 #include <linux/slab.h>
@@ -67,17 +70,51 @@ struct fq_codel_sched_data {
 	struct list_head old_flows;	/* list of old flows */
 };
 
+// ----------------------------
+// Linux 3.4 内核兼容版本 fq_codel_hash()
+// ----------------------------
 static unsigned int fq_codel_hash(const struct fq_codel_sched_data *q,
-				  const struct sk_buff *skb)
+                                  const struct sk_buff *skb)
 {
-	struct flow_keys keys;
-	unsigned int hash;
+    const struct iphdr *iph;
+    u32 src = 0, dst = 0;
+    u32 ports = 0;
+    u16 srcp = 0, dstp = 0;
+    u8 proto = 0;
+    u32 hash;
 
-	skb_flow_dissect_flow_keys(skb, &keys);
-	hash = jhash_3words((__force u32)keys.dst,
-			    (__force u32)keys.src ^ keys.ip_proto,
-			    (__force u32)keys.ports, q->perturbation);
-	return ((u64)hash * q->flows_cnt) >> 32;
+    // 空指针保护
+    if (!skb)
+        return 0;
+
+    // 仅处理 IPv4 数据包
+    if (skb->protocol == htons(ETH_P_IP)) {
+        iph = ip_hdr(skb);
+        if (iph) {
+            src = ntohl(iph->saddr);   // 源IP
+            dst = ntohl(iph->daddr);   // 目的IP
+            proto = iph->protocol;     // 协议号 (TCP/UDP)
+
+            // 提取传输层端口号
+            if (proto == IPPROTO_TCP) {
+                const struct tcphdr *th = tcp_hdr(skb);
+                srcp = ntohs(th->source);
+                dstp = ntohs(th->dest);
+            } else if (proto == IPPROTO_UDP) {
+                const struct udphdr *uh = udp_hdr(skb);
+                srcp = ntohs(uh->source);
+                dstp = ntohs(uh->dest);
+            }
+
+            ports = ((u32)srcp << 16) | dstp;
+        }
+    }
+
+    // 使用 jhash_3words 生成哈希值
+    hash = jhash_3words(dst, src ^ proto, ports, q->perturbation);
+
+    // 计算分桶索引
+    return ((u64)hash * q->flows_cnt) >> 32;
 }
 
 static unsigned int fq_codel_classify(struct sk_buff *skb, struct Qdisc *sch,
